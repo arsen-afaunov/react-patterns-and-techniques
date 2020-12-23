@@ -52,7 +52,7 @@ function Square({ width, color }) {
 }
 
 function withWindowWidth(Component) {
-  return class {
+  return class extends React.Component {
     state.width = window.innerWidth;
 
     componentDidMount() {
@@ -74,6 +74,52 @@ function withWindowWidth(Component) {
 }
 
 const SquareWithWindowWidth = withWindowWidth(Square);
+```
+
+Также компоненты высшего порядка могут использовать частичное применение функции, чтобы получить какую-либо конфигурацию:
+
+```js
+const withGists = (url) => (Component) =>
+  class extends React.Component {
+    state = {
+      items: []
+    };
+
+    componentDidMount = async () => {
+      const endpoint = typeof url === "function" ? url(this.props) : url;
+
+      const data = await fetch(endpoint);
+      const json = await data.json();
+
+      this.setState({ items: json });
+    };
+
+    render() {
+      return <Component {...this.props} {...this.state} />;
+    }
+  };
+
+function List({ items }) {
+  return (
+    <ul>
+      {items.map(({ id, description }) => (
+        <li key={id}>{description}</li>
+      ))}
+    </ul>
+  );
+}
+
+export default function App() {
+  const GistList = withGists(
+    (props) => `https://api.github.com/users/${props.username}/gists`
+  )(List);
+
+  return (
+    <div className="App">
+      <GistList username="gaearon" />
+    </div>
+  );
+}
 ```
 
 Также компоненты высшего порядка удобно использовать с контекстом в тех случаях, когда нужно держать компоненты изолированными от контекста, которым они пользуются. Например контекст отвечает за полуение данных из API, которые необходжимы какому-либо компоненту. Для этого компонента следует создать **HoC**, который будет отвечать за взаимодействие с контекстом и преобразование данных, полученных из него, в пропы, соответствующие интерфейсу компонента. Таким образом пользователи контекста будут защищены от изменений его интерфейса или логики работы в будущем.
